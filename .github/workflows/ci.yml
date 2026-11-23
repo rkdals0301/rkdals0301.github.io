@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ${{ vars.CI_SELF_HOSTED_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 25
+    container: ruby:3.4.10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: gem install bundler-audit -v 0.9.3 --no-document
+      - run: bundle-audit check --update
+      - run: bundle install --jobs 4
+        env:
+          BUNDLE_FROZEN: "true"
+      - run: bundle exec jekyll build
+        env:
+          JEKYLL_ENV: production
+      - run: test -s _site/index.html
